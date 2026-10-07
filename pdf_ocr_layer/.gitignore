@@ -6,5 +6,7 @@ __pycache__/
 *_texto.pdf
 *_texto.txt
 
-# PDF de prueba regenerable (uv run python tests/make_fixture.py)
-tests/fixture_scanned.pdf
+# Datos de prueba: documentos usados para probar el script, nunca se versionan
+# (incluye tests/fixture_scanned.pdf, regenerable con tests/make_fixture.py)
+tests/*.pdf
+tests/*.txt
