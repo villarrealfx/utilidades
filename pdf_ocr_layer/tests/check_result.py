@@ -33,6 +33,10 @@ ACCENTED_PHRASES = {
 MIN_WORDS_PAGE = 10
 # Tolerancia por byte al comparar renderizados (compresión/jpeg del viewer).
 PIXEL_TOLERANCE = 2
+# Desplazamiento vertical máximo admitido entre las palabras de una misma línea.
+# Si cada palabra se inserta con su propio cuerpo, la línea base baila y el
+# texto se ve desordenado al seleccionarlo.
+MAX_LINE_JITTER_PT = 0.5
 
 
 class CheckError(Exception):
@@ -58,12 +62,31 @@ def _compare_appearance(original: pymupdf.Document, output: pymupdf.Document) ->
             )
 
 
+def _check_line_alignment(page: pymupdf.Page, index: int) -> None:
+    """Todas las palabras de una línea deben compartir caja vertical."""
+    worst = 0.0
+    for block in page.get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            tops = [span["bbox"][1] for span in line["spans"]]
+            bottoms = [span["bbox"][3] for span in line["spans"]]
+            if len(tops) > 1:
+                worst = max(worst, max(tops) - min(tops), max(bottoms) - min(bottoms))
+
+    if worst > MAX_LINE_JITTER_PT:
+        raise CheckError(
+            f"página {index + 1}: las palabras de una línea están desalineadas "
+            f"{worst:.2f} pt (máximo {MAX_LINE_JITTER_PT} pt)"
+        )
+
+
 def _check_page_text(page: pymupdf.Page, index: int, language: str) -> None:
     words = page.get_text("words")
     text = page.get_text("text").lower()
     print(
         f"página {index + 1}: {len(words)} palabras extraídas, {len(page.get_images(full=True))} imagen(es)"
     )
+
+    _check_line_alignment(page, index)
 
     phrase = EXPECTED_PHRASES.get(index)
     if phrase and phrase.lower() not in text:

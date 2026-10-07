@@ -64,8 +64,11 @@ uv run python main.py entrada.pdf --inicio 14 --fin 19 --salida parcial.pdf
 * **La capa es invisible**: se emite con render mode 3 (`3 Tr`), por lo que la
   comparación píxel a píxel entre entrada y salida da idéntica.
 * **Las imágenes originales no se recomprimen ni se modifican.**
-* El texto se inserta en la posición de línea base y el cuerpo que calculó
-  Tesseract, de modo que la selección coincide con la imagen.
+* **El texto sale ordenado**: cada palabra va en su coordenada X exacta, pero
+  toda una línea comparte una única línea base y un único cuerpo. Si se
+  respetara el cuerpo que Tesseract devuelve por fragmento, cada palabra caería
+  a una altura distinta y la selección saldría escalonada. El texto extraído
+  coincide carácter a carácter con el resultado del OCR.
 * La capa se agrupa en un *Optional Content Group* llamado
   `Texto OCR (invisible)`, que los visores permiten activar o desactivar.
 
@@ -103,6 +106,7 @@ uv run python main.py tests/fixture_scanned.pdf --lang spa --salida /tmp/salida.
 uv run python tests/check_result.py tests/fixture_scanned.pdf /tmp/salida.pdf --lang spa
 ```
 
-El verificador comprueba que las imágenes se conservan, que la capa OCR existe, que
-la página digital no se duplicó, que la **apariencia visual no cambió** y que los
-acentos del idioma pedido sobreviven.
+El verificador comprueba que las imágenes se conservan, que la capa OCR existe,
+que la página digital no se duplicó, que la **apariencia visual no cambió**, que
+las palabras de cada línea **están alineadas** y que los acentos del idioma
+pedido sobreviven.

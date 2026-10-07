@@ -133,29 +133,51 @@ def _create_text_layer_group(doc: pymupdf.Document) -> int:
         return 0
 
 
+def _line_font_size(spans: list[dict]) -> float:
+    """Cuerpo único para toda la línea: media ponderada por cantidad de caracteres.
+
+    Tesseract devuelve un cuerpo distinto para cada fragmento (ruido de la
+    estimación). Si se respeta fragmento a fragmento, cada palabra acaba con una
+    altura de caja distinta y el texto queda disperso al extraerlo o al
+    seleccionarlo. Media ponderada por longitud es más estable que la mediana,
+    porque los fragmentos largos miden mejor el cuerpo real de la línea.
+    """
+    total_chars = sum(len(span["text"]) for span in spans)
+    if total_chars == 0:
+        return spans[0]["size"]
+    return sum(span["size"] * len(span["text"]) for span in spans) / total_chars
+
+
 def insert_invisible_text(
     page: pymupdf.Page, textpage: pymupdf.TextPage, ocg_xref: int
 ) -> int:
     """Vuelca el resultado del OCR como texto invisible sobre la página.
 
-    Se reutiliza la posición de línea base (`origin`) y el cuerpo (`size`) que
-    Tesseract ya calculó, para que la selección coincida con la imagen.
+    Cada palabra se coloca en su coordenada X exacta, pero toda la línea comparte
+    una única línea base y un único cuerpo: así la selección sale recta y el
+    orden de lectura coincide con el del OCR.
     """
     inserted = 0
     for block in textpage.extractDICT().get("blocks", []):
         for line in block.get("lines", []):
-            for span in line.get("spans", []):
-                text = span["text"]
-                size = span["size"]
-                # No usar text.strip(): los spans que son solo un espacio son
-                # necesarios para que el texto extraído conserve las palabras.
-                if not text or size <= 0:
-                    continue
-                x, y = span["origin"]
+            # Se conservan los spans que son solo un espacio: sin ellos el texto
+            # extraído se pegaría palabra con palabra.
+            spans = [
+                span
+                for span in line.get("spans", [])
+                if span["text"] and span["size"] > 0
+            ]
+            if not spans:
+                continue
+
+            baseline = spans[0]["origin"][1]
+            fontsize = _line_font_size(spans)
+
+            for span in spans:
                 page.insert_text(
-                    pymupdf.Point(x, y),
-                    text,
-                    fontsize=size,
+                    pymupdf.Point(span["origin"][0], baseline),
+                    span["text"],
+                    fontsize=fontsize,
                     fontname="helv",
                     render_mode=INVISIBLE_RENDER_MODE,
                     overlay=True,
