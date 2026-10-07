@@ -1,0 +1,11 @@
+[project]
+name = "pdf-ocr-layer"
+version = "0.1.0"
+description = "Convierte PDF escaneados (imagen) en PDF con capa de texto seleccionable mediante OCR"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pymupdf>=1.26.1",
+    "pytesseract>=0.3.13",
+    "pillow>=11.2.1",
+]

@@ -1,0 +1,6 @@
+# Entorno de uv (también cubierto por el .gitignore raíz)
+.venv/
+__pycache__/
+
+# PDF de prueba regenerable (uv run python tests/make_fixture.py)
+tests/fixture_scanned.pdf
